@@ -1,0 +1,59 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  labels:
+    app: octeon-driver-container
+  name: octeon-driver-container
+  namespace: octeon-test-namespace
+spec: {}
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    app: octeon-driver
+  name: octeon-driver
+  namespace: octeon-test-namespace
+spec:
+  nodeSelector:
+    node-role.kubernetes.io/worker: ""
+  runPolicy: "Serial"
+  triggers:
+    - type: "ConfigChange"
+    - type: "ImageChange"
+  source:
+    git:
+      ref: "master"
+      uri: "https://github.com/openshift-psap/kvc-simple-kmod.git"
+    type: Git
+    dockerfile: |
+      FROM quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:8705564ee52c5b655529860687f73db78daef4eaa54f5fdd3160cfbfc4aac438
+
+      WORKDIR /build/
+
+      RUN yum -y install git make sudo gcc bzip2 bc \
+      && yum clean all \
+      && rm -rf /var/cache/dnf
+
+      # Expecting kmod software version as an input to the build
+      ARG KMODVER
+
+      # Grab the software from upstream
+      RUN wget -O drivers.bz2 http://10.5.210.12/pcie_ep_octeontx.tar.bz2 && mkdir /build/drivers
+      RUN tar -xf /build/drivers.bz2 -C /build/drivers
+      RUN cd /build/drivers/pcie_ep_octeontx/host/ && make
+      RUN sudo insmod /build/drivers/pcie_ep_octeontx/host/drivers/legacy/modules/driver/bin/octeon_drv.ko sdp_packet_mode=loop num_vfs=10
+      RUN sudo insmod /build/drivers/pcie_ep_octeontx/host/drivers/legacy/modules/driver/bin/octeon_vf_drv.ko sdp_packet_mode=loop
+
+
+
+      RUN systemctl enable kmods-via-containers@simple-kmod
+  strategy:
+    dockerStrategy:
+      buildArgs:
+        - name: KMODVER
+          value: DEMO
+  output:
+    to:
+      kind: ImageStreamTag
+      name: octeon-driver-container:demo

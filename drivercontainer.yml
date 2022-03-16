@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: octeon-driver-container
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: octeon-driver-container
+rules:
+- apiGroups:
+  - security.openshift.io
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+  resourceNames:
+  - privileged
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: octeon-driver-container
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: octeon-driver-container
+subjects:
+- kind: ServiceAccount
+  name: octeon-driver-container
+userNames:
+- system:serviceaccount:simple-kmod-demo:octeon-driver-container
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: octeon-driver-container
+spec:
+  selector:
+    matchLabels:
+      app: octeon-driver-container
+  template:
+    metadata:
+      labels:
+        app: octeon-driver-container
+    spec:
+      serviceAccount: octeon-driver-container
+      serviceAccountName: octeon-driver-container
+      containers:
+      - image: image-registry.openshift-image-registry.svc:5000/octeon-driver-container/octeon-driver-container:demo
+        name: octeon-driver-container
+        imagePullPolicy: Always
+        command: ["/sbin/init"]
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "systemctl stop kmods-via-containers@simple-kmod"]
+        securityContext:
+          privileged: true
+      nodeSelector:
+        node-role.kubernetes.io/worker: ""
