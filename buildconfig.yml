@@ -35,24 +35,17 @@ spec:
       && yum clean all \
       && rm -rf /var/cache/dnf
 
-      # Expecting kmod software version as an input to the build
       ARG KMODVER
 
       # Grab the software from upstream
-      RUN wget -O drivers.bz2 http://10.5.210.12/pcie_ep_octeontx.tar.bz2 && mkdir /build/drivers
-      RUN tar -xf /build/drivers.bz2 -C /build/drivers
-      RUN cd /build/drivers/pcie_ep_octeontx/host/ && make
-      RUN sudo insmod /build/drivers/pcie_ep_octeontx/host/drivers/legacy/modules/driver/bin/octeon_drv.ko sdp_packet_mode=loop num_vfs=10
-      RUN sudo insmod /build/drivers/pcie_ep_octeontx/host/drivers/legacy/modules/driver/bin/octeon_vf_drv.ko sdp_packet_mode=loop
+      RUN wget -O drivers.bz2 http://10.5.210.12/sanity_check.tar.bz2 && mkdir /build/drivers
 
-
-
-      RUN systemctl enable kmods-via-containers@simple-kmod
   strategy:
     dockerStrategy:
       buildArgs:
         - name: KMODVER
           value: DEMO
+
   output:
     to:
       kind: ImageStreamTag
