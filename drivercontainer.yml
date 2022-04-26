@@ -28,8 +28,6 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: octeon-driver-container
-userNames:
-- system:serviceaccount:simple-kmod-demo:octeon-driver-container
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -47,7 +45,7 @@ spec:
       serviceAccount: octeon-driver-container
       serviceAccountName: octeon-driver-container
       containers:
-      - image: image-registry.openshift-image-registry.svc:5000/octeon-driver-container/octeon-driver-container:demo
+      - image: image-registry.openshift-image-registry.svc:5000/octeon-test-namespace/octeon-driver-container:demo
         name: octeon-driver-container
         imagePullPolicy: Always
         command: ["/sbin/init"]
